@@ -1,5 +1,7 @@
 # Bank-Solidity-Hiring
 
+[Credits: Syndicate Protocol]
+
 Hello! If you're reading this, you applied to a Solidity Engineering role at Hyype. This is Hyype's hiring test for Solidity engineers.
 
 When you fork this repository, you should make your fork **private** and share it with [nextroy](https://github.com/nextroy) on Github with an admin role. By forking this repository, you agree to keep the MIT License intact and assign the MIT License to your fork as well.
