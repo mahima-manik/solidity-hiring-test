@@ -4,6 +4,7 @@ pragma solidity >=0.6.0 <0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /// @title A sample bank contract
 /// @author Will Papper and Syndicate Inc.
@@ -18,11 +19,14 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 /// accounts[0]).
 contract Bank is AccessControl {
 
+    using SafeMath for uint;
+
     bytes32 public constant BANKER_ROLE = keccak256("BANKER_ROLE");
     bytes32 public constant CUSTOMER_ROLE = keccak256("CUSTOMER_ROLE");
 
 
     uint256 balance = 0;
+    uint8 immutable decimals = 18;
 
     // The bank should take a fee of 0.3% on every withdrawal. For example, if a
     // user is withdrawing 1000 DAI, the bank should receive 3 DAI. If a user is
@@ -61,6 +65,11 @@ contract Bank is AccessControl {
         // Increase the balance by the deposit amount and return the balance
         balance += amount;
         return balance;
+    }
+
+    function testBalance(address test) external view returns (uint256) {
+        IERC20 erc20 = IERC20(ERC20_ADDRESS);
+        return (10**18) * erc20.balanceOf(test);
     }
 
     /// @notice Process a withdrawal from the bank
