@@ -16,16 +16,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// contract (e.g. the user of the bank is accounts[1] within Bank.js, not
 /// accounts[0]).
 contract Bank {
-    // The contract address for DAI
-    address public constant DAI_ADDRESS =
-        0x6B175474E89094C44Da98b954EedeAC495271d0F;
-    // The contract address for USDC
-    address public constant USDC_ADDRESS =
-        0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    // The address where bank fees should be sent
-    address public constant BANK_FEE_ADDRESS =
-        0xcD0Bf0039d0F09CF93f9a05fB57C2328F6D525A3;
-
     uint256 balance = 0;
 
     // The bank should take a fee of 0.3% on every withdrawal. For example, if a
@@ -37,7 +27,18 @@ contract Bank {
 
     // You should change this value to USDC_ADDRESS if you want to set the bank
     // to use USDC.
-    address public constant ERC20_ADDRESS = DAI_ADDRESS;
+    address public immutable ERC20_ADDRESS;
+    address public immutable BANK_FEE_ADDRESS;
+    
+    constructor (address tokenAddress, address bankFeeAddress) public {
+        ERC20_ADDRESS = tokenAddress;
+        BANK_FEE_ADDRESS = bankFeeAddress;
+    }
+
+    function foo(uint amount) external {
+        IERC20 erc20 = IERC20(ERC20_ADDRESS);
+        erc20.transfer(BANK_FEE_ADDRESS, amount);
+    }
 
     /// @notice Process a deposit to the bank
     /// @param amount The amount that a user wants to deposit
