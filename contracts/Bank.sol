@@ -25,7 +25,7 @@ contract Bank is AccessControl {
     bytes32 public constant CUSTOMER_ROLE = keccak256("CUSTOMER_ROLE");
 
 
-    uint256 balance = 0;
+    mapping (address => uint256) balances;
     uint8 immutable decimals = 18;
 
     // The bank should take a fee of 0.3% on every withdrawal. For example, if a
@@ -39,14 +39,17 @@ contract Bank is AccessControl {
     // to use USDC.
     address public ERC20_ADDRESS;
     address public BANK_FEE_ADDRESS;
-    address public CUSTOMER_ADDRESS;
     
-    constructor (address tokenAddress, address bankFeeAddress, address customerAddress) public {
+    constructor (address tokenAddress, address bankFeeAddress) public {
         ERC20_ADDRESS = tokenAddress;
         BANK_FEE_ADDRESS = bankFeeAddress;
-        CUSTOMER_ADDRESS = customerAddress;
         _setupRole(BANKER_ROLE, BANK_FEE_ADDRESS);
-        _setupRole(CUSTOMER_ROLE, CUSTOMER_ADDRESS);
+    }
+
+    function addCustomer(address customer) external {
+        require(hasRole(BANKER_ROLE, msg.sender), "Caller is not the banker");
+        _setupRole(CUSTOMER_ROLE, customer);
+        balances[customer] = 0;
     }
 
     /// @notice Process a deposit to the bank
@@ -63,8 +66,8 @@ contract Bank is AccessControl {
         erc20.transferFrom(msg.sender, address(this), amount);
 
         // Increase the balance by the deposit amount and return the balance
-        balance += amount;
-        return balance;
+        balances[msg.sender] += amount;
+        return balances[msg.sender];
     }
 
     function testBalance(address test) external view returns (uint256) {
@@ -79,7 +82,7 @@ contract Bank is AccessControl {
     function withdraw(uint256 amount) public returns (uint256) {
 
         require(hasRole(CUSTOMER_ROLE, msg.sender), "Caller is not the customer");
-        require(balance >= amount, "Not enoght balance to withdraw");
+        require(balances[msg.sender] >= amount, "Not enoght balance to withdraw");
         
         // Initialize the ERC20 for USDC or DAI
         IERC20 erc20 = IERC20(ERC20_ADDRESS);
@@ -89,13 +92,13 @@ contract Bank is AccessControl {
 
         erc20.transfer(msg.sender, amountToUser);
         // Decrease the balance by the amount sent to the user
-        balance -= amountToUser;
+        balances[msg.sender] -= amountToUser;
 
         erc20.transfer(BANK_FEE_ADDRESS, amountToBank);
         // Decrease the balance by the amount sent to the bank
-        balance -= amountToBank;
+        balances[msg.sender] -= amountToBank;
 
-        return balance;
+        return balances[msg.sender];
     }
 
     /// @notice Calculate the fee that should go to the bank
@@ -124,7 +127,7 @@ contract Bank is AccessControl {
     /// @notice Get the user's bank balance
     /// @return balance The balance of the user
     function getBalanceForBankUser() public view returns (uint256) {
-        require(hasRole(BANKER_ROLE, msg.sender) || hasRole(CUSTOMER_ROLE, msg.sender), "Caller is neither the banker or customer");
-        return balance;
+        require(hasRole(CUSTOMER_ROLE, msg.sender), "Caller is neither the banker or customer");
+        return balances[msg.sender];
     }
 }

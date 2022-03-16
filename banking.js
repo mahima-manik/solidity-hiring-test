@@ -18,6 +18,7 @@ module.exports = async function(callback) {
     await daiInstance.approve(BANK_ADDRESS, 2^256 - 1, {from: CUSTOMER_ADDRESS});
 
     await daiInstance.mint(CUSTOMER_ADDRESS, 1000);
+    await bankInstance.addCustomer(CUSTOMER_ADDRESS, {from: BANK_ADDRESS});
 
     let balance = await daiInstance.balanceOf(CUSTOMER_ADDRESS)
     console.log("Balance of customer", balance.toNumber())
