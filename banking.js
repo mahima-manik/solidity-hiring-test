@@ -15,9 +15,6 @@ module.exports = async function(callback) {
     let balance = await daiInstance.balanceOf(bankInstance.address)
     console.log("Balance of bank contract", balance.toNumber())
 
-    let result = await bankInstance.foo(50);
-    console.log(result)
-
     balance = await daiInstance.balanceOf(accounts[5])
     console.log("Balance of account[5]", accounts[5], balance.toNumber())
 
