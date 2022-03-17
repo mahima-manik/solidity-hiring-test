@@ -24,16 +24,20 @@ contract Bank is AccessControl {
     bytes32 public constant BANKER_ROLE = keccak256("BANKER_ROLE");
     bytes32 public constant CUSTOMER_ROLE = keccak256("CUSTOMER_ROLE");
 
-
-    mapping (address => uint256) balances;
+    mapping (address => uint256) private balances;
     uint8 immutable decimals = 18;
+
+    event Deposit(address customer, uint256 balance);
+    event Withdraw(address customer, uint256 balance);
+    event CustomerAdded(address customer);
+    event BankFees(uint8 bankFee);
 
     // The bank should take a fee of 0.3% on every withdrawal. For example, if a
     // user is withdrawing 1000 DAI, the bank should receive 3 DAI. If a user is
     // withdrawing 100 DAI, the bank should receive .3 DAI. The same should hold
     // true for USDC as well.
     // The bankFee is set using setBankFee();
-    uint256 bankFee = 0;
+    uint8 bankFee = 0;
 
     // You should change this value to USDC_ADDRESS if you want to set the bank
     // to use USDC.
@@ -46,18 +50,19 @@ contract Bank is AccessControl {
         _setupRole(BANKER_ROLE, BANK_FEE_ADDRESS);
     }
 
-    function addCustomer(address customer) external {
+    function addCustomer(address account) external {
         require(hasRole(BANKER_ROLE, msg.sender), "Caller is not the banker");
-        _setupRole(CUSTOMER_ROLE, customer);
-        balances[customer] = 0;
+        _setupRole(CUSTOMER_ROLE, account);
+        balances[account] = 0;
+        emit CustomerAdded(account);
     }
 
     /// @notice Process a deposit to the bank
     /// @param amount The amount that a user wants to deposit
-    /// @return balance The current account balance
-    function deposit(uint256 amount) public returns (uint256) {
+    function deposit(uint256 amount) public {
 
         require(hasRole(CUSTOMER_ROLE, msg.sender), "Caller is not the customer");
+        require(balances[msg.sender] + amount >= 100, "Minimum balance should be 100");
 
         // Initialize the ERC20 for USDC or DAI
         IERC20 erc20 = IERC20(ERC20_ADDRESS);
@@ -67,22 +72,16 @@ contract Bank is AccessControl {
 
         // Increase the balance by the deposit amount and return the balance
         balances[msg.sender] += amount;
-        return balances[msg.sender];
-    }
-
-    function testBalance(address test) external view returns (uint256) {
-        IERC20 erc20 = IERC20(ERC20_ADDRESS);
-        return (10**18) * erc20.balanceOf(test);
+        emit Deposit(msg.sender, balances[msg.sender]);
     }
 
     /// @notice Process a withdrawal from the bank
     /// @param amount The amount that a user wants to withdraw. The bank takes a
     /// 0.3% fee on every withdrawal
-    /// @return balance The current account balance
-    function withdraw(uint256 amount) public returns (uint256) {
+    function withdraw(uint256 amount) public {
 
         require(hasRole(CUSTOMER_ROLE, msg.sender), "Caller is not the customer");
-        require(balances[msg.sender] >= amount, "Not enoght balance to withdraw");
+        require(balances[msg.sender]-amount >= 100, "Not enough balance to withdraw, minimum balance: 100");
         
         // Initialize the ERC20 for USDC or DAI
         IERC20 erc20 = IERC20(ERC20_ADDRESS);
@@ -98,7 +97,7 @@ contract Bank is AccessControl {
         // Decrease the balance by the amount sent to the bank
         balances[msg.sender] -= amountToBank;
 
-        return balances[msg.sender];
+        emit Withdraw(msg.sender, balances[msg.sender]);
     }
 
     /// @notice Calculate the fee that should go to the bank
@@ -109,25 +108,25 @@ contract Bank is AccessControl {
         view
         returns (uint256, uint256)
     {
-        // TODO: Implement the 0.3% fee to the bank here
-        uint256 amountToBank = amount * bankFee;
+        require (amount >= 100, "Minimum amount should be 100");
+        uint256 amountToBank = (amount * bankFee) / 100;
         uint256 amountToUser = amount - amountToBank;
         return (amountToUser, amountToBank);
     }
 
     /// @notice Set the fee that the bank takes
     /// @param fee The fee that bankFee should be set to
-    /// @return bankFee The new value of the bank fee
-    function setBankFee(uint256 fee) public returns (uint256) {
+    function setBankFee(uint8 fee) public {
         require(hasRole(BANKER_ROLE, msg.sender), "Caller is not the banker");
+        require(fee > 0 && fee < 100, "Bank fees should be between 0-100");
         bankFee = fee;
-        return bankFee;
+        emit BankFees(bankFee);
     }
 
     /// @notice Get the user's bank balance
     /// @return balance The balance of the user
     function getBalanceForBankUser() public view returns (uint256) {
-        require(hasRole(CUSTOMER_ROLE, msg.sender), "Caller is neither the banker or customer");
+        require(hasRole(CUSTOMER_ROLE, msg.sender), "Caller is not the customer");
         return balances[msg.sender];
     }
 }

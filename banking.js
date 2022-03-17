@@ -13,6 +13,7 @@ module.exports = async function(callback) {
     const bankInstance = await BankContract.deployed();
     console.log("Contract instance fetched: ", bankInstance.address);
     
+    const approve_amount = '115792089237316195423570985008687907853269984665640564039457584007913129639935'; //(2^256 - 1 )
     await daiInstance.approve(bankInstance.address, 2^256 - 1, {from: CUSTOMER_ADDRESS});
     await daiInstance.approve(CUSTOMER_ADDRESS, 2^256 - 1, {from: CUSTOMER_ADDRESS});
     await daiInstance.approve(BANK_ADDRESS, 2^256 - 1, {from: CUSTOMER_ADDRESS});
@@ -23,12 +24,19 @@ module.exports = async function(callback) {
     let balance = await daiInstance.balanceOf(CUSTOMER_ADDRESS)
     console.log("Balance of customer", balance.toNumber())
 
-    // try {
-    //     let result = await bankInstance.setBankFee(0.3, {from: BANK_ADDRESS});
-    //     console.log("Bank balance of customer is: ", result.toNumber());
-    // } catch (error) {
-    //     console.log(error.message)
-    // }
+
+    try {
+        await bankInstance.setBankFee(30, {from: BANK_ADDRESS});
+    } catch (error) {
+        console.log(error.message)
+    }
+
+    try {
+        let result = await bankInstance.calculateBankFee(1111111);
+        console.log("Bank fees is: ", result[0].toNumber(), result[1].toNumber());
+    } catch (error) {
+        console.log(error.message)
+    }
 
     try {
         await bankInstance.deposit(200, {from: CUSTOMER_ADDRESS});
@@ -56,13 +64,6 @@ module.exports = async function(callback) {
         console.log("Bank Balance of customer after withdraw is: ", balance.toNumber())
     } catch (error) {
         console.log("Error in withdraw ", error.message)
-    }
-
-    try {
-        let result = await bankInstance.testBalance(CUSTOMER_ADDRESS);
-        console.log("BalanceOf erc20 is: ", result.toNumber());
-    } catch (error) {
-        console.log(error.message)
     }
 
     callback();
