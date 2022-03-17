@@ -14,11 +14,12 @@ contract("Bank", (accounts) => {
     before(async () => {
         daiInstance = await DaiContract.deployed();
         bankInstance = await Bank.deployed();
+        // approve addresses to use erc20 tokens
         await daiInstance.approve(bankInstance.address, approve_amount, {from: CUSTOMER_ADDRESS_1});
+        await daiInstance.approve(bankInstance.address, approve_amount, {from: CUSTOMER_ADDRESS_2});
         await daiInstance.approve(CUSTOMER_ADDRESS_1, approve_amount, {from: CUSTOMER_ADDRESS_1});
-        await daiInstance.approve(BANK_ADDRESS,approve_amount, {from: CUSTOMER_ADDRESS_1});
-    
-        await daiInstance.mint(CUSTOMER_ADDRESS_1, 1000);
+        await daiInstance.approve(CUSTOMER_ADDRESS_2, approve_amount, {from: CUSTOMER_ADDRESS_2});
+        await daiInstance.approve(BANK_ADDRESS, approve_amount, {from: CUSTOMER_ADDRESS_1});
     });
 
     it ('Test Add Customer success', async () => {
@@ -38,11 +39,28 @@ contract("Bank", (accounts) => {
     })
 
     it ('Deposit funds success', async () => {
+        await daiInstance.mint(CUSTOMER_ADDRESS_1, 1000);
         let result = await bankInstance.deposit(500, {from: CUSTOMER_ADDRESS_1})
         truffleAssert.eventEmitted(result, 'Deposit', (ev) => {
             return ev.customer == CUSTOMER_ADDRESS_1 &&
             ev.balance == 500;
         })
+        let balance = await bankInstance.getBalanceForBankUser({from: CUSTOMER_ADDRESS_1})
+        assert.equal(balance.toNumber(), 500, "Customer balance not set")
+    })
+
+    it ('Deposit funds success for second customer', async () => {
+        await bankInstance.addCustomer(CUSTOMER_ADDRESS_2, {from: BANK_ADDRESS});
+        await daiInstance.mint(CUSTOMER_ADDRESS_2, 1000);
+        let balance = await daiInstance.balanceOf(CUSTOMER_ADDRESS_2);
+        console.log("Customer adddress2: ", balance.toNumber())
+        let result = await bankInstance.deposit(400, {from: CUSTOMER_ADDRESS_2})
+        truffleAssert.eventEmitted(result, 'Deposit', (ev) => {
+            return ev.customer == CUSTOMER_ADDRESS_2 &&
+            ev.balance == 400;
+        })
+        balance = await bankInstance.getBalanceForBankUser({from: CUSTOMER_ADDRESS_2})
+        assert.equal(balance.toNumber(), 400, "Customer balance not set")
     })
 
     it ('Set Bank fees to 10%', async () => {

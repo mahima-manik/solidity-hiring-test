@@ -40,3 +40,22 @@ If the tests are failing with the error `Error: Returned error: VM Exception whi
 If you receive an error along the lines of `Ganache CLI v6.12.2 (ganache-core: 2.13.2) Error: The fork provider errored when checking the nonce for account 0x98c31a46ae41253b2d96f702883f20e24634bd3a: Returned error: header not found` when running `npm start` or `Error: while migrating Migrations: Returned error: Returned error: missing trie node 71b994905112eb743856facd1284a03324d4f0ed05b76cba734dabaed4489057 (path )` when running `npm test`, this is an issue with the Ethereum gateway being out of date. You should wait a few minutes and try running `npm start` again.
 
 If you receive `Error: while migrating Migrations: Returned error: Returned error: Invalid Request. Requested data is older than 128 blocks.` while running `npm test`, simply close your terminal window containing the Ganache server (run via `npm start`) and re-run it again.
+
+### Submission Details
+Bank.sol had multiple security flaws at the beginning:
+1. Anyone can set deposit and withdraw balance
+2. Anyone can view and update balance
+
+Morever, it was confined to only one erc20 token type.
+Changes made:
+1. Create two roles: BANKER_ROLE and CUSTOMER_ROLE. Every function now has access control check, which makes sure that the balance is safe
+    a. setBankFee(), addCustomer() - Only banker can call
+    b. deposit(), withdraw() - Only customer can call
+    c. Calculate bank fee - Anyone can call
+2. Multiple accounts can be added to the Bank and balances is maintained accordingly.
+3. Bank fees in set by the banker. Minimum balance of 100 erc20 is required to be maintained for all the accounts.
+4. Corresponding error is thrown and changes reverted, if any, by using the require statements before the execution.
+5. Events are emitted on deposit(), withdraw().
+6. ERC20 token address is passed in the constructor, along with Banker address.
+7. ERC20 token is approved for Bank address to hold and use.
+8. Added tests
